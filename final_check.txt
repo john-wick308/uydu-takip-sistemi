@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yörünge Takip - Canlı Starlink ve Küresel Uydu Takip Sistemi</title>
+    
+    <!-- Google Fonts: Modern & Okunaklı Tipografi -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Harita Kütüphanesi CSS (Yerel) -->
+    <link rel="stylesheet" href="leaflet.css">
+    
+    <!-- Özel Tasarım Stilleri -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 1. ÜST BİLGİ VE BAŞLIK ÇUBUĞU (HEADER) -->
+    <header class="navbar">
+        <div class="nav-brand">
+            <div class="logo-icon">
+                <span class="pulse-beacon"></span>
+                🛰️
+            </div>
+            <div class="brand-text">
+                <h1>YÖRÜNGE TAKİP</h1>
+                <p class="tagline">Starlink &amp; Küresel Canlı Uydu Radar Sistemi</p>
+            </div>
+        </div>
+
+        <!-- ORTALANMIŞ CANLI UTC SAATİ -->
+        <div class="time-box centered-time-box">
+            <span class="time-dot"></span>
+            <span class="time-label">CANLI UTC:</span>
+            <span id="utcClock" class="time-value">15:23:14</span>
+        </div>
+
+        <div class="nav-status-group">
+            <div class="status-badge live-pulse">
+                <span class="status-dot"></span>
+                <span class="status-label">CANLI YÖRÜNGE VERİSİ</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. ORTANIN BİRAZ ÜSTÜNDE BULUNAN ARAMA BÖLÜMÜ (SEARCH SECTION) -->
+    <section class="search-hero-section">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="satelliteSearchInput" placeholder="Starlink, Türksat, ISS, Hubble veya uydu adı yazın..." autocomplete="off" aria-label="Uydu arama kutusu">
+                <button id="btnClearSearch" class="btn-clear" title="Aramayı Temizle">✕</button>
+                <button id="btnOnlineSearch" class="btn-online-search" title="CelesTrak veritabanından canlı ara">
+                    📡 Canlı Ara
+                </button>
+            </div>
+
+            <!-- Otomatik Tamamlama ve Arama Sonuçları Listesi -->
+            <div id="searchResultsDropdown" class="search-dropdown hidden"></div>
+
+            <!-- Hızlı Kategori Seçim Düğmeleri -->
+            <div class="category-chips">
+                <button class="chip active" data-category="all">✨ Tümü</button>
+                <button class="chip" data-category="starlink">🛰️ Starlink</button>
+                <button class="chip" data-category="turk">🇹🇷 Türk Uyduları</button>
+                <button class="chip" data-category="station">🚀 Uzay İstasyonu (ISS)</button>
+                <button class="chip" data-category="science">🔭 Teleskop &amp; Bilim</button>
+                <button class="chip" data-category="weather">☁️ Meteoroloji</button>
+                <button class="chip" data-category="nav">🌍 GPS / Konum</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. ANA GÖVDE: HARİTA VE DETAYLI CANLI BİLGİ PANELİ -->
+    <main class="dashboard-layout">
+        <!-- SOL / ORTA BÖLÜM: ETKİLEŞİMLİ HARİTA -->
+        <section class="map-card">
+            <div class="map-header">
+                <div class="map-title-info">
+                    <span id="targetStatusText" class="badge-target">🎯 HEDEF SEÇİLDİ</span>
+                    <h2 id="activeSatHeaderTitle">STARLINK-38090</h2>
+                </div>
+                <div class="map-toolbar">
+                    <button id="btnCenterSat" class="btn-tool" title="Uydunun Konumuna Odaklan">📍 Odaklan</button>
+                    <button id="btnAutoFollow" class="btn-tool active" title="Kamerayı Uydunun Peşinden Otomatik Takip Ettir">🎯 Otomatik Takip</button>
+                    <button id="btnToggleOrbit" class="btn-tool active" title="Uydunun gün boyunca nereden geçtiğini ve gideceği yolu göster/gizle">〰️ Günlük Yörünge İzi</button>
+                    <button id="btnMapStyle" class="btn-tool active" title="Google Harita, Uydu ve Gece Modları Arasında Geçiş Yap">🗺️ Google Harita</button>
+                </div>
+            </div>
+
+            <!-- Leaflet Harita Konteyneri -->
+            <div id="satelliteMap" class="map-viewport leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(681px, -331px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 20; transform: translate3d(0px, 0px, 0px) scale(1);"><img alt="" src="https://mt2.google.com/vt/lyrs=m&amp;x=3&amp;y=3&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(86px, 100px, 0px); opacity: 1;"><img alt="" src="https://mt3.google.com/vt/lyrs=m&amp;x=4&amp;y=3&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(342px, 100px, 0px); opacity: 1;"><img alt="" src="https://mt1.google.com/vt/lyrs=m&amp;x=3&amp;y=2&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(86px, -156px, 0px); opacity: 1;"><img alt="" src="https://mt2.google.com/vt/lyrs=m&amp;x=4&amp;y=2&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(342px, -156px, 0px); opacity: 0;"><img alt="" src="https://mt3.google.com/vt/lyrs=m&amp;x=3&amp;y=4&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(86px, 356px, 0px); opacity: 1;"><img alt="" src="https://mt0.google.com/vt/lyrs=m&amp;x=4&amp;y=4&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(342px, 356px, 0px); opacity: 1;"><img alt="" src="https://mt1.google.com/vt/lyrs=m&amp;x=2&amp;y=3&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-170px, 100px, 0px); opacity: 0.77;"><img alt="" src="https://mt0.google.com/vt/lyrs=m&amp;x=2&amp;y=2&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-170px, -156px, 0px); opacity: 0.415;"><img alt="" src="https://mt2.google.com/vt/lyrs=m&amp;x=2&amp;y=4&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-170px, 356px, 0px); opacity: 0.83;"><img alt="" src="https://mt3.google.com/vt/lyrs=m&amp;x=2&amp;y=5&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-170px, 612px, 0px); opacity: 1;"><img alt="" src="https://mt0.google.com/vt/lyrs=m&amp;x=3&amp;y=5&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(86px, 612px, 0px); opacity: 1;"><img alt="" src="https://mt1.google.com/vt/lyrs=m&amp;x=1&amp;y=4&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-426px, 356px, 0px); opacity: 1;"><img alt="" src="https://mt0.google.com/vt/lyrs=m&amp;x=1&amp;y=3&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-426px, 100px, 0px); opacity: 0.67;"><img alt="" src="https://mt2.google.com/vt/lyrs=m&amp;x=1&amp;y=5&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-426px, 612px, 0px); opacity: 1;"><img alt="" src="https://mt1.google.com/vt/lyrs=m&amp;x=4&amp;y=5&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(342px, 612px, 0px); opacity: 1;"><img alt="" src="https://mt0.google.com/vt/lyrs=m&amp;x=0&amp;y=4&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-682px, 356px, 0px); opacity: 1;"><img alt="" src="https://mt3.google.com/vt/lyrs=m&amp;x=0&amp;y=3&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-682px, 100px, 0px); opacity: 1;"><img alt="" src="https://mt1.google.com/vt/lyrs=m&amp;x=0&amp;y=5&amp;z=3" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-682px, 612px, 0px); opacity: 1;"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"><svg pointer-events="none" class="leaflet-zoom-animated" width="822" height="576" viewBox="-749 283 822 576" style="transform: translate3d(-749px, 283px, 0px);"><g><path class="leaflet-interactive" stroke="#ff7700" stroke-opacity="0.9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6, 6" fill="none" d="M-389 283L-426 478L-459 633L-483 732L-521 859M-522 283L-586 605L-608 698L-640 815M-656 283L-672 368M73 621L34 431L6 283M8 859L-12 809L-44 693L-65 602L-128 283M-129 859L-169 727L-192 629L-210 548L-262 283M-260 859L-292 764L-319 658L-338 573"></path><path class="leaflet-interactive" stroke="#ff2a6d" stroke-opacity="0.9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8, 6" fill="none" d="M-338 573L-395 283M-393 859L-414 804L-445 690L-466 599L-529 283M-528 859L-533 849L-571 723L-594 626L-626 473L-662 283M73 806L54 859M56 283L16 488L-17 646L-43 747L-78 859M-78 283L-127 537L-144 617L-167 712L-202 834L-213 859M-211 283L-256 513L-292 679L-322 790L-347 859M-345 283L-385 490"></path></g></svg></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon sat-custom-marker leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -18px; margin-top: -18px; width: 36px; height: 36px; transform: translate3d(-344px, 545px, 0px); z-index: 545;">
+            <div class="radar-marker">
+                <div class="radar-ring"></div>
+                <div class="radar-ring radar-ring-2"></div>
+                <div class="radar-core">🛰️</div>
+            </div>
+        </div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(343.5px, 1239px, 0px) scale(4);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in" href="#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="false"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a> <span aria-hidden="true">|</span> © Google Maps &amp; Yörünge Takip</div></div></div></div>
+
+            <!-- Harita Üzerindeki Bilgi Çubuğu (Hedef Özeti ve Yörünge Göstergesi) -->
+            <div class="map-overlay-summary">
+                <div class="summary-item">
+                    <span class="sum-label">CANLI İRTİFA:</span>
+                    <span id="hudAltitude" class="sum-value">479.5 km</span>
+                </div>
+                <div class="summary-item">
+                    <span class="sum-label">ANLIK SÜRAT:</span>
+                    <span id="hudSpeed" class="sum-value">27.451 km/h</span>
+                </div>
+                <div class="summary-item">
+                    <span class="sum-label">ROTA AÇISI:</span>
+                    <span id="hudHeadingDeg" class="sum-value">348° Kuzey</span>
+                </div>
+                <div class="summary-item orbit-legend" id="hudOrbitLegend">
+                <span class="sum-label" style="color: #ff9100; font-weight: 700;">🟠 Önceden Geçtiği Yol</span>
+                <span class="sum-label" style="color: #ff2a6d; font-weight: 700; margin-left: 10px;">🔴 Gideceği Yol</span>
+            </div>
+            </div>
+        </section>
+
+        <!-- SAĞ BÖLÜM: DETAYLI CANLI TELEMETRİ VE UYDU BİLGİLERİ -->
+        <aside class="telemetry-panel">
+            <div class="panel-header">
+                <div class="sat-badge" id="telemetryCategoryBadge">Starlink İnternet (Uçan Alçak Yörünge)</div>
+                <h3 id="telemetrySatName" class="sat-title">STARLINK-38090</h3>
+                <p id="telemetrySatDesc" class="sat-desc">SpaceX tarafından küresel yüksek hızlı internet sağlamak amacıyla alçak Dünya yörüngesine (LEO) fırlatılan Starlink uydusu.</p>
+            </div>
+
+            <!-- Canlı Rota ve Hareket Kutusu ("Hangi hızla nereye gidiyor?") -->
+            <div class="live-motion-banner">
+                <div class="compass-indicator" id="compassArrowWrapper">
+                    <div id="compassNeedle" class="needle" style="transform: rotate(348deg);">▲</div>
+                </div>
+                <div class="motion-text">
+                    <div class="motion-title">CANLI HAREKET &amp; YÖN DURUMU</div>
+                    <div id="motionDirectionSummary" class="motion-summary"><strong>Kuzey (348°)</strong> yönüne doğru <strong>27.447 km/h</strong> hızla ilerliyor.</div>
+                    <div id="motionOverRegion" class="motion-region">
+                        📍 Şu an: <span id="currentRegionText">Pasifik Okyanusu</span> üzerinde
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6'lı Detaylı Telemetri Kartları -->
+            <div class="telemetry-grid">
+                <!-- 1. Enlem (Latitude) -->
+                <div class="tele-card">
+                    <div class="tele-label">📍 ENLEM (LATITUDE)</div>
+                    <div class="tele-value" id="valLatitude">-31.4975°</div>
+                    <div class="tele-sub" id="valLatitudeDMS">31.50° Güney</div>
+                </div>
+
+                <!-- 2. Boylam (Longitude) -->
+                <div class="tele-card">
+                    <div class="tele-label">🌐 BOYLAM (LONGITUDE)</div>
+                    <div class="tele-value" id="valLongitude">-120.5695°</div>
+                    <div class="tele-sub" id="valLongitudeDMS">120.57° Batı</div>
+                </div>
+
+                <!-- 3. Anlık Hız -->
+                <div class="tele-card highlight">
+                    <div class="tele-label">⚡ ANLIK HIZ</div>
+                    <div class="tele-value highlight-text" id="valSpeedKmh">27.451 km/h</div>
+                    <div class="tele-sub" id="valSpeedKms">7.63 km/saniye</div>
+                </div>
+
+                <!-- 4. Yükseklik / İrtifa -->
+                <div class="tele-card">
+                    <div class="tele-label">🏔️ YÜKSEKLİK (İRTİFA)</div>
+                    <div class="tele-value" id="valAltitude">479.5 km</div>
+                    <div class="tele-sub" id="valOrbitType">Alçak Dünya Yörüngesi (LEO)</div>
+                </div>
+
+                <!-- 5. Yön Açısı (Heading / Azimuth) -->
+                <div class="tele-card">
+                    <div class="tele-label">🧭 ROTA / GİTTİĞİ AÇI</div>
+                    <div class="tele-value" id="valHeading">348°</div>
+                    <div class="tele-sub" id="valCompassText">Kuzey</div>
+                </div>
+
+                <!-- 6. Yörünge Periyodu -->
+                <div class="tele-card">
+                    <div class="tele-label">⏱️ TAM TUR SÜRESİ</div>
+                    <div class="tele-value" id="valPeriod">94.0 dk</div>
+                    <div class="tele-sub">Dünya Çevresinde 1 Tur</div>
+                </div>
+            </div>
+
+            <!-- İlave Teknik ve Yörünge Bilgileri -->
+            <div class="extra-tech-details">
+                <div class="tech-row">
+                    <span class="t-key">NORAD Katalog No:</span>
+                    <span class="t-val" id="valNoradId">69994</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">İşletmeci / Ülke:</span>
+                    <span class="t-val" id="valOperator">SpaceX</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">Aydınlanma Durumu:</span>
+                    <span class="t-val" id="valSunlight">☀️ Güneş Işığında (Gündüz)</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">Yörünge Eğimi (İnklinasyon):</span>
+                    <span class="t-val" id="valInclination">53.2°</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+
+
+    <!-- 5. KÜTÜPHANELER VE UYGULAMA KODLARI (YEREL & KESİNTİSİZ) -->
+    <!-- Leaflet JS (Harita Çizimi İçin) -->
+    <script src="leaflet.js"></script>
+    
+    <!-- Satellite.js (NASA / SGP4 Yörünge ve Koordinat Hesaplama Kütüphanesi) -->
+    <script src="satellite.min.js"></script>
+    
+    <!-- Hazır Uydu Veritabanı -->
+    <script src="satellites.js"></script>
+    
+    <!-- Ana Uygulama Mantığı -->
+    <script src="app.js"></script>
+
+
+</body></html>

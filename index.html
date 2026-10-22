@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yörünge Takip - Canlı Starlink ve Küresel Uydu Takip Sistemi</title>
+    
+    <!-- Google Fonts: Modern & Okunaklı Tipografi -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet Harita Kütüphanesi CSS (Yerel) -->
+    <link rel="stylesheet" href="leaflet.css">
+    
+    <!-- Özel Tasarım Stilleri -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 1. ÜST BİLGİ VE BAŞLIK ÇUBUĞU (HEADER) -->
+    <header class="navbar">
+        <div class="nav-brand">
+            <div class="logo-icon">
+                <span class="pulse-beacon"></span>
+                🛰️
+            </div>
+            <div class="brand-text">
+                <h1>YÖRÜNGE TAKİP</h1>
+                <p class="tagline">Starlink & Küresel Canlı Uydu Radar Sistemi</p>
+            </div>
+        </div>
+
+        <!-- ORTALANMIŞ CANLI UTC SAATİ -->
+        <div class="time-box centered-time-box">
+            <span class="time-dot"></span>
+            <span class="time-label">CANLI UTC:</span>
+            <span id="utcClock" class="time-value">--:--:--</span>
+        </div>
+
+        <div class="nav-status-group">
+            <div class="status-badge live-pulse">
+                <span class="status-dot"></span>
+                <span class="status-label">CANLI YÖRÜNGE VERİSİ</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. ORTANIN BİRAZ ÜSTÜNDE BULUNAN ARAMA BÖLÜMÜ (SEARCH SECTION) -->
+    <section class="search-hero-section">
+        <div class="search-container">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input 
+                    type="text" 
+                    id="satelliteSearchInput" 
+                    placeholder="Starlink, Türksat, ISS, Hubble veya uydu adı yazın..." 
+                    autocomplete="off"
+                    aria-label="Uydu arama kutusu"
+                >
+                <button id="btnClearSearch" class="btn-clear" title="Aramayı Temizle">✕</button>
+                <button id="btnOnlineSearch" class="btn-online-search" title="CelesTrak veritabanından canlı ara">
+                    📡 Canlı Ara
+                </button>
+            </div>
+
+            <!-- Otomatik Tamamlama ve Arama Sonuçları Listesi -->
+            <div id="searchResultsDropdown" class="search-dropdown hidden"></div>
+
+            <!-- Hızlı Kategori Seçim Düğmeleri -->
+            <div class="category-chips">
+                <button class="chip active" data-category="all">✨ Tümü</button>
+                <button class="chip" data-category="starlink">🛰️ Starlink</button>
+                <button class="chip" data-category="turk">🇹🇷 Türk Uyduları</button>
+                <button class="chip" data-category="station">🚀 Uzay İstasyonu (ISS)</button>
+                <button class="chip" data-category="science">🔭 Teleskop & Bilim</button>
+                <button class="chip" data-category="weather">☁️ Meteoroloji</button>
+                <button class="chip" data-category="nav">🌍 GPS / Konum</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. ANA GÖVDE: HARİTA VE DETAYLI CANLI BİLGİ PANELİ -->
+    <main class="dashboard-layout">
+        <!-- SOL / ORTA BÖLÜM: ETKİLEŞİMLİ HARİTA -->
+        <section class="map-card">
+            <div class="map-header">
+                <div class="map-title-info">
+                    <span id="targetStatusText" class="badge-target">🎯 HEDEF SEÇİLDİ</span>
+                    <h2 id="activeSatHeaderTitle">STARLINK-38090</h2>
+                </div>
+                <div class="map-toolbar">
+                    <button id="btnCenterSat" class="btn-tool" title="Uydunun Konumuna Odaklan">📍 Odaklan</button>
+                    <button id="btnAutoFollow" class="btn-tool active" title="Kamerayı Uydunun Peşinden Otomatik Takip Ettir">🎯 Otomatik Takip</button>
+                    <button id="btnToggleOrbit" class="btn-tool active" title="Uydunun gün boyunca nereden geçtiğini ve gideceği yolu göster/gizle">〰️ Günlük Yörünge İzi</button>
+                    <button id="btnMapStyle" class="btn-tool active" title="Google Harita, Uydu ve Gece Modları Arasında Geçiş Yap">🗺️ Google Harita</button>
+                </div>
+            </div>
+
+            <!-- Leaflet Harita Konteyneri -->
+            <div id="satelliteMap" class="map-viewport"></div>
+
+            <!-- Harita Üzerindeki Bilgi Çubuğu (Hedef Özeti ve Yörünge Göstergesi) -->
+            <div class="map-overlay-summary">
+                <div class="summary-item">
+                    <span class="sum-label">CANLI İRTİFA:</span>
+                    <span id="hudAltitude" class="sum-value">--- km</span>
+                </div>
+                <div class="summary-item">
+                    <span class="sum-label">ANLIK SÜRAT:</span>
+                    <span id="hudSpeed" class="sum-value">--- km/h</span>
+                </div>
+                <div class="summary-item">
+                    <span class="sum-label">ROTA AÇISI:</span>
+                    <span id="hudHeadingDeg" class="sum-value">---°</span>
+                </div>
+                <div class="summary-item orbit-legend" id="hudOrbitLegend">
+                    <span class="sum-label" style="color: #ff9100; font-weight: 700;">🟠 Önceden Geçtiği Yol</span>
+                    <span class="sum-label" style="color: #ff2a6d; font-weight: 700; margin-left: 10px;">🔴 Gideceği Yol</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- SAĞ BÖLÜM: DETAYLI CANLI TELEMETRİ VE UYDU BİLGİLERİ -->
+        <aside class="telemetry-panel">
+            <div class="panel-header">
+                <div class="sat-badge" id="telemetryCategoryBadge">STARLINK İNTERNET UYDUSU</div>
+                <h3 id="telemetrySatName" class="sat-title">STARLINK-38090</h3>
+                <p id="telemetrySatDesc" class="sat-desc">SpaceX tarafından küresel internet erişimi için alçak Dünya yörüngesinde işletilen takım uydu.</p>
+            </div>
+
+            <!-- Canlı Rota ve Hareket Kutusu ("Hangi hızla nereye gidiyor?") -->
+            <div class="live-motion-banner">
+                <div class="compass-indicator" id="compassArrowWrapper">
+                    <div id="compassNeedle" class="needle">▲</div>
+                </div>
+                <div class="motion-text">
+                    <div class="motion-title">CANLI HAREKET & YÖN DURUMU</div>
+                    <div id="motionDirectionSummary" class="motion-summary">
+                        Kuzey-Doğu yönüne doğru <strong id="motionSpeedVal">--- km/h</strong> hızla ilerliyor.
+                    </div>
+                    <div id="motionOverRegion" class="motion-region">
+                        📍 Şu an: <span id="currentRegionText">Pasifik Okyanusu</span> üzerinde
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6'lı Detaylı Telemetri Kartları -->
+            <div class="telemetry-grid">
+                <!-- 1. Enlem (Latitude) -->
+                <div class="tele-card">
+                    <div class="tele-label">📍 ENLEM (LATITUDE)</div>
+                    <div class="tele-value" id="valLatitude">--.----°</div>
+                    <div class="tele-sub" id="valLatitudeDMS">Kuzey / Güney</div>
+                </div>
+
+                <!-- 2. Boylam (Longitude) -->
+                <div class="tele-card">
+                    <div class="tele-label">🌐 BOYLAM (LONGITUDE)</div>
+                    <div class="tele-value" id="valLongitude">--.----°</div>
+                    <div class="tele-sub" id="valLongitudeDMS">Doğu / Batı</div>
+                </div>
+
+                <!-- 3. Anlık Hız -->
+                <div class="tele-card highlight">
+                    <div class="tele-label">⚡ ANLIK HIZ</div>
+                    <div class="tele-value highlight-text" id="valSpeedKmh">--.--- km/h</div>
+                    <div class="tele-sub" id="valSpeedKms">--.-- km/s</div>
+                </div>
+
+                <!-- 4. Yükseklik / İrtifa -->
+                <div class="tele-card">
+                    <div class="tele-label">🏔️ YÜKSEKLİK (İRTİFA)</div>
+                    <div class="tele-value" id="valAltitude">--- km</div>
+                    <div class="tele-sub" id="valOrbitType">Alçak Dünya Yörüngesi (LEO)</div>
+                </div>
+
+                <!-- 5. Yön Açısı (Heading / Azimuth) -->
+                <div class="tele-card">
+                    <div class="tele-label">🧭 ROTA / GİTTİĞİ AÇI</div>
+                    <div class="tele-value" id="valHeading">---°</div>
+                    <div class="tele-sub" id="valCompassText">Pusula Yönü</div>
+                </div>
+
+                <!-- 6. Yörünge Periyodu -->
+                <div class="tele-card">
+                    <div class="tele-label">⏱️ TAM TUR SÜRESİ</div>
+                    <div class="tele-value" id="valPeriod">--.- dk</div>
+                    <div class="tele-sub">Dünya Çevresinde 1 Tur</div>
+                </div>
+            </div>
+
+            <!-- İlave Teknik ve Yörünge Bilgileri -->
+            <div class="extra-tech-details">
+                <div class="tech-row">
+                    <span class="t-key">NORAD Katalog No:</span>
+                    <span class="t-val" id="valNoradId">69994</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">İşletmeci / Ülke:</span>
+                    <span class="t-val" id="valOperator">SpaceX</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">Aydınlanma Durumu:</span>
+                    <span class="t-val" id="valSunlight">☀️ Güneş Işığında (Gündüz)</span>
+                </div>
+                <div class="tech-row">
+                    <span class="t-key">Yörünge Eğimi (İnklinasyon):</span>
+                    <span class="t-val" id="valInclination">53.2°</span>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+
+
+    <!-- 5. KÜTÜPHANELER VE UYGULAMA KODLARI (YEREL & KESİNTİSİZ) -->
+    <!-- Leaflet JS (Harita Çizimi İçin) -->
+    <script src="leaflet.js"></script>
+    
+    <!-- Satellite.js (NASA / SGP4 Yörünge ve Koordinat Hesaplama Kütüphanesi) -->
+    <script src="satellite.min.js"></script>
+    
+    <!-- Hazır Uydu Veritabanı -->
+    <script src="satellites.js"></script>
+    
+    <!-- Ana Uygulama Mantığı -->
+    <script src="app.js"></script>
+</body>
+</html>
